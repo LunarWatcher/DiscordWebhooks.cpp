@@ -1,0 +1,8 @@
+Import("env")
+
+sources = ["dwc/main.cpp"]
+
+env.appendSourcePath("#src/")
+
+env.Program("runner", sources)
+

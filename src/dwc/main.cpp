@@ -44,20 +44,17 @@ std::vector<std::string> tonythepony(std::string inputXml, const std::string& la
     auto grabbedLatest = false;
     for (std::sregex_iterator it(xml.begin(), xml.end(), itemRegex); it != std::sregex_iterator{}; ++it) {
         std::string item = (*it).str();
-        std::cout << item << "\n----\n";
 
         auto url = parseSingle(item, urlRegex);
 
         auto date = parseSingle(item, dateRegex);
 
         if (date == lastEntry) {
-            std::cout << "equal" << std::endl;
             break;
         }
-            std::cout << lastEntry << " " << date << std::endl;
+
         if (url == "") {
             // No url? Invalid entry - skip
-
             continue;
         }
         if (!grabbedLatest) {
@@ -67,6 +64,7 @@ std::vector<std::string> tonythepony(std::string inputXml, const std::string& la
 
         sanitizeUrl(url);
         urls.push_back(url);
+        std::cout << "New feed URL detected: " << url << std::endl;
     }
 
     return urls;
@@ -83,8 +81,7 @@ int main() {
     while (true) {
         for (auto& source : config) {
             std::string url = source.at("url").get<std::string>();
-            auto outputs = source.at("outputs").get<std::vector<std::string>>();
-            auto outputAdditions = source.value("outputCustomMessage", std::vector<std::string>());
+            auto outputs = source.at("outputs").get<std::map<std::string, std::string>>();
 
             std::string username = source.value("username", "Feeds");
             std::string lastEntry = source.value("last_entry", "");
@@ -93,23 +90,22 @@ int main() {
             auto res = tonythepony(xml.text, lastEntry);
             if (res.size() > 0) {
                 source["last_entry"] = res[0];
+            } else {
+                continue;
             }
 
             for (size_t i = 1; i < res.size(); ++i) {
 
-                for (size_t j = 0; j < outputs.size(); ++j) {
-                    std::string addition = "";
-                    if (outputAdditions.size() >= outputs.size()) {
-                        addition = outputAdditions.at(j);
-                    }
-                    auto hook = outputs.at(j);
-
+                for (auto& [hook, addition] : outputs) {
                     nlohmann::json payload{//
                             {"username", username}, //
                             {"content", addition + (addition.size() == 0 ? "" : " ") + res[i]}};
                     auto response = cpr::Post(cpr::Url{hook}, //
                             cpr::Header{{"Content-Type", "application/json"}}, //
                             cpr::Body(payload.dump()));
+                    if (response.status_code < 200 || response.status_code >= 400) {
+                        std::cout << "ERROR: Failed to post to " << hook << " with " << res[i] << ": received " << response.status_code << "\nMessage from server: " << response.text << std::endl;
+                    }
                     std::this_thread::sleep_for(500ms);
                 }
             }

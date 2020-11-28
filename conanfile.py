@@ -6,5 +6,6 @@ class DWC(ConanFile):
     generators = "scons"
 
     def requirements(self):
-        self.requires("cpr/1.5.0")
+        # TODO: update to 1.5.2 when the bugs are fixed
+        self.requires("cpr/1.4.0")
         self.requires("nlohmann_json/3.9.1")

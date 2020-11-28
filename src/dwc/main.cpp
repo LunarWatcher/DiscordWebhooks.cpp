@@ -101,8 +101,7 @@ int main() {
                             {"username", username}, //
                             {"content", addition + (addition.size() == 0 ? "" : " ") + res[i]}};
                     auto response = cpr::Post(cpr::Url{hook}, //
-                            cpr::Header{{"Content-Type", "application/json"},
-                                    {"Content-Length", std::to_string(payload.dump().size())}}, //
+                            cpr::Header{{"Content-Type", "application/json"}}, //
                             cpr::Body(payload.dump()));
                     if (response.status_code < 200 || response.status_code >= 400) {
                         std::cout << "ERROR: Failed to post to " << hook << " with " << res[i] << ": received "
